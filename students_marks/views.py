@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import json
-from .models import students
+from .models import Students
 from .serializers import StudentSerializer
 from django.db.models import Sum
 # Create your views here.
@@ -24,7 +24,7 @@ class StudentCreateMark(APIView):
             #dictionary = dict()
             student_details = data.get("marks")
             for i in data["marks"].keys(): 
-                student_new, created = students.objects.update_or_create(name=student_name,subject =i,
+                student_new, created = Students.objects.update_or_create(name=student_name,subject =i,
                                                                      defaults={'marks':student_details[i]
                                                                      })
 
@@ -43,20 +43,18 @@ class StudentCreateMark(APIView):
 
 class GetStudentsMark(APIView):
     
-    def get(self,request,pk):
+    def get(self,request):
         try:
-            #allmark = students.objects.exclude("marks")
+            student_obj = Students.objects.all()            
             
-            student_obj = students.objects.filter(name = pk)            #print(student_obj)
-            
-            all_marks = []
-            for i in student_obj:
-                all_marks.append(i.marks)
-            data_obj = {pk:all_marks}
+            all_students_marks = []
+            for student in student_obj:
+                students_data = StudentSerializer(instance=student)
+                all_students_marks.append(students_data.data)
                
             return Response(
                     status=status.HTTP_200_OK,
-                    data= data_obj
+                    data= all_students_marks
                 )
 
         except Exception as e:
@@ -78,9 +76,9 @@ class GetStudentTotalMark(APIView):
             #student_all = students.objects.all()
             #student_count = students.objects.all().distinct("name").count()
             #num_of_students = length/student_count
-            student_name = students.objects.all().distinct("name")
+            student_name = Students.objects.all().distinct("name")
             for names in student_name:
-                student1 = students.objects.filter(name = names.name).aggregate(total_marks = Sum("marks"))
+                student1 = Students.objects.filter(name = names.name).aggregate(total_marks = Sum("marks"))
                 all_students[names.name] = student1
                 #all_students.append(data_obj)
             
@@ -100,11 +98,11 @@ class GetAverageMark(APIView):
     
     def get(self,request):
         try:
-            student_name = students.objects.all().distinct("name")
+            student_subject = Students.objects.all().distinct("subject")
             all_students =dict()
-            for names in student_name:
-                student1 = students.objects.filter(name = names.name).aggregate(Average_marks = Avg("marks"))
-                all_students[names.name] = student1
+            for sub in student_subject:
+                subjects = Students.objects.filter(subject = sub.subject).aggregate(Average_marks = Avg("marks"))
+                all_students[sub.subject] = subjects
             
             return Response(
                     status=status.HTTP_200_OK,
